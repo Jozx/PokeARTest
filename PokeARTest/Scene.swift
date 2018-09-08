@@ -20,6 +20,9 @@ class Scene: SKScene {
             self.remainingLabel.text = "Faltan \(targetCount)"
         }
     }
+    let startTime = Date()
+    
+    let deathSound = SKAction.playSoundFileNamed("QuickDeath", waitForCompletion: false)
     
     override func didMove(to view: SKView) {
         // Setup your scene here
@@ -45,8 +48,39 @@ class Scene: SKScene {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-       
-
+        //localizar el primer toque del conjunto de toques
+        //mirar si el toque cae dentro de la vista del AR
+        guard let touch = touches.first else {return}
+        
+        let location = touch.location(in: self)
+        
+        print("El toque ha sido en:  \(location.x), \(location.y)")
+        
+        //buscar todos los nodos que han sido tocados por ese toque de usuario
+        let hit = nodes(at: location)
+        
+        //agarrar el primer Sprite del array que devuelve el metodo anterior (si lo hay) y se anima el objeto hasta desaparecer
+        if let sprite = hit.first {
+            let scaleOut = SKAction.scale(to: 2, duration: 0.5)
+            let fadeOut = SKAction.fadeOut(withDuration: 0.5)
+            
+            //en grupo realiza las acciones al mismo tiempo
+            let groupAction = SKAction.group([scaleOut, fadeOut, deathSound])
+            //en secuencia, lo hace una a la vez
+            let sequenceAction = SKAction.sequence([groupAction, SKAction.removeFromParent()])
+            
+            sprite.run(sequenceAction)
+            
+        //actualizar que hay un objeto menos con la variable targetCount
+            
+            targetCount -= 1
+            
+            if targetCreated == 25 && targetCount == 0 {
+                gameOver()
+            }
+            
+        }
+    
     }
     
     func createTarget() {
@@ -94,6 +128,25 @@ class Scene: SKScene {
         
         //Añadir esa ancla a la escena
         sceneView.session.add(anchor: anchor)
+    }
+    
+    func gameOver() {
+        //ocultar remainingLabel
+        remainingLabel.removeFromParent()
         
+        //crear una nueva imagen con la foto de game over
+        let gameOver = SKSpriteNode(imageNamed: "gameover")
+        addChild(gameOver)
+        
+        //calcular el tiempo que duro la caza de objetos
+        let timeTaken = Date().timeIntervalSince(startTime)
+        
+        //mostrar el tiempo que le ha llevado en pantalla en una etiqueta nueva
+        let timeTakenLabel = SKLabelNode(text: "Te ha llevado: \(Int(timeTaken)) segundos")
+        timeTakenLabel.fontSize = 40
+        timeTakenLabel.color = .white
+        timeTakenLabel.position = CGPoint(x: 0,//view!.frame.maxX - 50,
+                                          y: -view!.frame.midY + 50)
+        addChild(timeTakenLabel)
     }
 }
